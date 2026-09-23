@@ -14,12 +14,13 @@
 <!-- 1 · TITLE -->
 <section class="slide title-slide">
   <div class="kicker">TypeSafe AI · System One models</div>
-  <h1>Jev: <span class="accent">decision models</span><br>for software</h1>
+  <h1>Jev: <span class="accent">System One models</span><br>for software</h1>
   <p class="sub">A model that returns typed judgments and calibrated probabilities instead of generated text.</p>
   <div class="meta">Based on the official TypeSafe docs (docs.typesafe.ai) · model <span class="c-blue">jev-1.13.0</span></div>
   <aside class="notes"><ul>
     <li>Goal for the next 30 min: everyone leaves knowing what Jev is, what a System One model is, and how you build with it.</li>
     <li>Note the name: it is "Jev", from TypeSafe AI. It is the first System One model.</li>
+    <li>Naming: the CEO said in a podcast that they deliberately do not call them "decision models". System One is broader (models whose consumer is code); Jev's primitives happen to be decisions, and other machine-native model types are planned. Some people do say "decision models" informally.</li>
     <li>Everything on the slides is from the official docs; where it is our own reading, it is marked.</li>
   </ul></aside>
   <div class="counter"></div>
@@ -111,6 +112,7 @@ flowchart LR
     <li>Zero-shot classifiers and LLM-with-logprobs approaches exist. Be honest about that: the claim is a new contract (typed, calibrated, cheap, composable), not a new capability.</li>
     <li>"Not fine-tuned or LoRA-adapted with customer data" and "not trained on customer requests or responses" (docs, /models).</li>
     <li>Latency: how-to guide says "about 100 ms", use-case map says 150 ms. We have not measured.</li>
+    <li>If asked about function calling (CEO, podcast): it gives no probability per function and no way to set thresholds, so the only control is asking nicely in the prompt. A Jev Choice maps to an enum/switch with probabilities you can threshold; Noul maps to an <code>if</code>; Score to a threshold or sort.</li>
   </ul></aside>
   <div class="counter"></div>
 </section>
@@ -796,6 +798,8 @@ flowchart TB
     <li>Aliases move when a new release ships. Log the versioned <code>model</code> from the response; pin the ID if thresholds were tuned to one version.</li>
     <li>Legal page covers the DPA, Privacy Policy and zero data retention. We have not read it in detail.</li>
     <li>Everything in the "to verify" box is our suggestion, not from the docs.</li>
+    <li>CEO (podcast): Jev has no refusal or safety layer by design; he compares intelligence to a database, not a coworker. Guardrails and policy checks are our responsibility (they can themselves be Jev questions, see slide 15).</li>
+    <li>CEO (podcast): he is against public benchmarks; trust should come from evaluating in your own workflow. That is why our "verify on our data" points matter.</li>
   </ul></aside>
   <div class="counter"></div>
 </section>
