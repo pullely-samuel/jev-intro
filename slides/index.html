@@ -127,11 +127,11 @@ flowchart LR
     </div>
     <div class="row grow">
       <div class="col w55">
-        <div class="callout good"><b>Calibrated</b> = among all predictions where the model says <b class="c-green">0.8</b>, about <b class="c-green">80%</b> are correct. Same for 0.2 → ~20%, 0.95 → ~95%.</div>
+        <div class="callout good"><b>Calibrated</b> = among all predictions where the model assigns probability <b class="c-green">0.8</b> to its answer, about <b class="c-green">80%</b> are correct. Same for 0.2 → ~20%, 0.95 → ~95%.</div>
         <ul class="list sm">
-          <li><b>Example:</b> 1,000 tickets get <code>technical</code> at p = 0.8 → about 800 are really technical.</li>
+          <li><b>Example:</b> 1,000 tickets where <code>probabilities["technical"]</code> = 0.80 → about 800 are really technical.</li>
           <li><b>Overconfident model:</b> says 0.99 but is right 70% of the time. Its probabilities cannot be used as thresholds.</li>
-          <li>A statement about <b>groups</b> of predictions, not a guarantee for one answer. Validate on your own data.</li>
+          <li>About the <b>probabilities</b> (not <code>confidence</code>), and about <b>groups</b> of predictions, not one answer. Validate on your own data.</li>
         </ul>
       </div>
       <div class="diagram">
@@ -437,10 +437,10 @@ else:
       </div>
       <div class="col">
         <ul class="list sm">
-          <li><b>probabilities</b>: the full distribution over your options or levels (sums to 1). The primary output.</li>
-          <li><b>confidence</b>: one number from 0 to 1 summarizing how <b>peaked</b> that distribution is. All on one option → 1.0; the flatter, the lower.</li>
-          <li>Convenience for thresholds. You can compute your own from <code>probabilities</code>.</li>
-          <li>It describes the <b>answer</b>, not correctness. Low confidence: options overlap, or the state says too little.</li>
+          <li><b>probabilities</b>: what the model believes: the full distribution (sums to 1). <b>Calibration is a claim about these.</b></li>
+          <li><b>confidence</b>: one 0–1 number for how <b>peaked</b> that distribution is: a rescaled convenience for thresholds. Example: top probability 0.85 → confidence 0.78.</li>
+          <li>Confidence is <b>not itself calibrated</b>: 0.78 does not mean "78% right". Tune thresholds on your own data (accuracy per confidence bucket).</li>
+          <li>Low confidence: options overlap, or the state says too little.</li>
         </ul>
         <div class="callout warn small"><b>Our reading (not official).</b> Consistent with every recorded example: <code>(N · p_max − 1) / (N − 1)</code>. So it depends on the number of options N, and only on the top probability.</div>
       </div>
@@ -451,7 +451,8 @@ else:
     <li>Confidence is TypeSafe's own derived statistic, not a standard probability-theory term. Closest standard notion: the ML "classifier confidence" = max predicted class probability. Unrelated to statistical confidence intervals.</li>
     <li>Docs only state the formula for the 3-option demo: (3 × p_max − 1) / 2. We generalized it and it matches all recorded examples with N = 3, 4, 5. Say "a normalized measure of how peaked the distribution is".</li>
     <li>Consequences: with two options, p = 0.9 gives confidence 0.8; with three, 0.85. And [0.5, 0.5, 0] and [0.5, 0.25, 0.25] would get the same confidence.</li>
-    <li>"Confidence 0.8" does NOT mean "80% likely correct". Calibration is a claim about the probabilities.</li>
+    <li>"Confidence 0.8" does NOT mean "80% likely correct". Calibration is a claim about the probabilities (e.g. top probability 0.85), not about the derived confidence (0.78). Both numbers are per-answer; calibration is checked across many answers.</li>
+    <li>Why keep confidence? One number per answer on a fixed 0–1 scale regardless of the number of options. For a fixed N it ranks answers the same as the top probability (our inferred formula).</li>
   </ul></aside>
   <div class="counter"></div>
 </section>
