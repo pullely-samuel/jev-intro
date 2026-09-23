@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jev &amp; System One Models</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="hint">← → navigate · N notes · F fullscreen</div>
+<div id="stage">
+<div class="progress"></div>
+
+<!-- 1 · TITLE -->
+<section class="slide title-slide">
+  <div class="kicker">TypeSafe AI · System One models</div>
+  <h1>Jev: <span class="accent">decision models</span><br>for software</h1>
+  <p class="sub">A model that returns typed judgments and calibrated probabilities instead of generated text.</p>
+  <div class="meta">Samuel Pullely · Innovation team · AI engineering<br>Based on the official TypeSafe docs (docs.typesafe.ai) · model <span class="c-blue">jev-1.13.0</span></div>
+  <aside class="notes"><ul>
+    <li>Goal for the next 30 min: everyone leaves knowing what Jev is, what a System One model is, and how you build with it.</li>
+    <li>Note the name: it is "Jev", from TypeSafe AI. It is the first System One model.</li>
+    <li>Everything on the slides is from the official docs; where it is our own reading, it is marked.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 2 · PROBLEM -->
+<section class="slide">
+  <div class="kicker">Part 1 · What is it</div>
+  <h1>LLMs write text for humans. <span class="accent">Code needs decisions.</span></h1>
+  <p class="lead">Using an LLM as a decision step means coercing a text generator into structured output, then parsing it back.</p>
+  <div class="body">
+    <div class="diagram grow"><pre class="mermaid">
+flowchart TB
+  subgraph L["LLM as a classifier"]
+    direction LR
+    a1["prompt + input"] --> a2["free-form text"] --> a3["parse, validate, retry"] --> a4["decision"]
+  end
+  subgraph J["Jev (System One)"]
+    direction LR
+    b1["state + typed questions"] --> b2["typed answers<br/>+ probabilities"] --> b3["decision<br/>in your code"]
+  end
+  L ~~~ J
+    </pre></div>
+    <div class="row">
+      <div class="callout bad w50"><b>Text generation as the interface</b><br>Format failures, parsing code, and no reliable statement of uncertainty.</div>
+      <div class="callout good w50"><b>Decision as the interface</b><br>The output is already a typed value your code can branch on, sort by and route with.</div>
+    </div>
+  </div>
+  <div class="source">Source: /introduction · /introduction/machine-learning-primer</div>
+  <aside class="notes"><ul>
+    <li>Docs framing: "a mismatch: you are coercing a text-generation system into outputting structured decisions, then parsing the results back."</li>
+    <li>TypeSafe's bet: future automation is mostly machine-to-machine, so the machine interface matters more than the chat interface ("Machine Native Intelligence").</li>
+    <li>Not "LLMs are bad". Chat models are great for chat. The claim is that decisions inside software need a different contract.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 3 · WHAT IS JEV -->
+<section class="slide">
+  <div class="kicker">Part 1 · What is it</div>
+  <h1>System One models: <span class="accent">fast, structured decisions</span></h1>
+  <div class="body">
+    <div class="callout"><b>Definition.</b> A <b>System One model</b> is a class of AI models built to make fast, structured decisions that software can use directly. It evaluates a <b>state</b> and returns typed answers and probabilities. <b>Jev</b> is TypeSafe's flagship and the first System One model.</div>
+    <div class="diagram" style="flex:1 1 0"><pre class="mermaid">
+flowchart LR
+  input["state + questions"]
+  subgraph model["Jev"]
+    evaluate["evaluate each question<br/>against the state in parallel"]
+  end
+  input -- "one request" --> model
+  model -- "one response" --> answers["typed answers<br/>+ probabilities + confidence"]
+  answers --> code["your code<br/>branch · sort · route"]
+      </pre></div>
+    <div class="row">
+      <div class="card tint-green"><h3>It does</h3><p>Understand natural language and return a typed decision plus probabilities.</p></div>
+      <div class="card tint-magenta"><h3>It does not</h3><p>Write replies, produce code, or explain its reasoning.</p></div>
+      <div class="card tint-blue"><h3>Why "System One"?</h3><p>Kahneman's <i>Thinking, Fast and Slow</i>: fast, intuitive judgment.</p></div>
+    </div>
+  </div>
+  <div class="source">Source: /concepts/system-one · /introduction</div>
+  <aside class="notes"><ul>
+    <li>Input today is text only: strings, JSON objects, arrays of text. No images, audio or video (yet).</li>
+    <li>Think "gut-check a knowledgeable person makes in a few seconds, given the right context".</li>
+    <li>All questions in one request run in parallel and cannot see each other's answers.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 4 · COMPARISON -->
+<section class="slide">
+  <div class="kicker">Part 1 · What is it</div>
+  <h1>How it differs from what we already use</h1>
+  <div class="body">
+    <table class="t big">
+      <thead><tr><th></th><th>Classical classifier</th><th>Prompted LLM</th><th style="color:var(--blue)">Jev</th></tr></thead>
+      <tbody>
+        <tr><td><b>Task defined by</b></td><td>Labeled data + training</td><td>A prompt</td><td class="hl">Questions in natural language, per request (zero-shot)</td></tr>
+        <tr><td><b>Output</b></td><td>Fixed label set</td><td>Free text to parse</td><td class="hl">Typed value constrained to <i>your</i> options, plus probabilities</td></tr>
+        <tr><td><b>Uncertainty</b></td><td>Sometimes probabilities</td><td>Self-reported, tends to overconfidence</td><td class="hl">Calibrated probabilities are the training target (RLCD)</td></tr>
+        <tr><td><b>Input</b></td><td>Fixed features</td><td>Text</td><td class="hl">Text: string, nested JSON, arrays</td></tr>
+        <tr><td><b>Speed / cost</b></td><td>Fast, cheap</td><td>Slower, pay for generated tokens</td><td class="hl">~100 ms; $0.042 / M input tokens; output free</td></tr>
+        <tr><td><b>Adapting it</b></td><td>Retrain</td><td>Prompt or fine-tune</td><td class="hl">State + instructions + criteria. Same weights for everyone</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">Jev column: from TypeSafe's docs, including their speed and cost figures (not independently verified). The other two columns are general background, not from the docs. The novelty is the <b>combination</b>, not any single ingredient.</div>
+  </div>
+  <div class="source">Source: /models · /concepts/how-to-build-with-system-one · /introduction/machine-learning-primer</div>
+  <aside class="notes"><ul>
+    <li>Zero-shot classifiers and LLM-with-logprobs approaches exist. Be honest about that: the claim is a new contract (typed, calibrated, cheap, composable), not a new capability.</li>
+    <li>"Not fine-tuned or LoRA-adapted with customer data" and "not trained on customer requests or responses" (docs, /models).</li>
+    <li>Latency: how-to guide says "about 100 ms", use-case map says 150 ms. We have not measured.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 5 · RLCD + CALIBRATION -->
+<section class="slide">
+  <div class="kicker">Part 1 · What is it</div>
+  <h1>Trained for <span class="accent">calibrated decisions</span> (RLCD)</h1>
+  <div class="body">
+    <div class="row">
+      <div class="card w40"><h3>RLHF</h3><p>Human feedback. Made chatbots: answers people prefer.</p></div>
+      <div class="card"><h3>RLVR</h3><p>Verifiable rewards. Made reasoning models: strong, but slower and costlier.</p></div>
+      <div class="card tint-blue"><h3 class="accent">RLCD</h3><p>Reinforcement learning for <b>calibrated decisions</b>: returns decisions and probabilities, not text.</p></div>
+    </div>
+    <div class="row grow">
+      <div class="col w55">
+        <div class="callout good"><b>Calibrated</b> = among all predictions where the model says <b class="c-green">0.8</b>, about <b class="c-green">80%</b> are correct. Same for 0.2 → ~20%, 0.95 → ~95%.</div>
+        <ul class="list sm">
+          <li><b>Example:</b> 1,000 tickets get <code>technical</code> at p = 0.8 → about 800 are really technical.</li>
+          <li><b>Overconfident model:</b> says 0.99 but is right 70% of the time. Its probabilities cannot be used as thresholds.</li>
+          <li>A statement about <b>groups</b> of predictions, not a guarantee for one answer. Validate on your own data.</li>
+        </ul>
+      </div>
+      <div class="diagram">
+        <svg viewBox="0 0 400 400" style="height:100%;max-height:440px;width:auto" role="img" aria-label="Reliability diagram (illustrative)">
+          <rect x="50" y="20" width="330" height="330" fill="none" stroke="#484848"/>
+          <line x1="50" y1="350" x2="380" y2="20" stroke="#25be6a" stroke-width="3" stroke-dasharray="8 6"/>
+          <polyline points="50,340 130,282 210,222 290,152 380,100" fill="none" stroke="#ee5396" stroke-width="4"/>
+          <text x="215" y="385" fill="#a8adb5" font-size="17" text-anchor="middle" font-family="monospace">stated probability</text>
+          <text x="14" y="185" fill="#a8adb5" font-size="17" text-anchor="middle" font-family="monospace" transform="rotate(-90 14 185)">actual accuracy</text>
+          <text x="80" y="60" fill="#25be6a" font-size="18" font-family="monospace">calibrated</text>
+          <text x="232" y="290" fill="#ee5396" font-size="18" font-family="monospace">overconfident</text>
+          <text x="232" y="312" fill="#6f7580" font-size="15" font-family="monospace">(illustrative)</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: /introduction/machine-learning-primer · /concepts/system-one</div>
+  <aside class="notes"><ul>
+    <li>RLCD is TypeSafe's term. The docs describe it only at a high level: probabilities "optimized against outcomes to reflect uncertainty". No reward function or paper is published in the docs.</li>
+    <li>Their critique of RLHF: rewards what people prefer, which can reward sycophancy and confident-sounding hallucinations; "mode dropping". Human preference is not machine trustworthiness.</li>
+    <li>Why it matters: calibration is what lets a threshold like "act above 0.85, else ask a human" have a predictable error rate.</li>
+    <li>The diagram is illustrative, not real Jev data. We could measure a real reliability diagram with our own labeled data later.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 6 · REQUEST ANATOMY -->
+<section class="slide">
+  <div class="kicker">Part 2 · Core concepts</div>
+  <h1>The request: <span class="accent">state</span> + <span class="accent">questions</span></h1>
+  <div class="body">
+    <div class="row grow">
+      <div class="panel w60"><div class="ph in">POST https://api.typesafe.ai/v1/systemone</div><div class="pb"><pre class="code xs" data-lang="json">
+{
+  "model": "jev-latest",
+  "state": "Hi, I've been trying to connect my Stripe account for 3 days and the integration keeps failing. I'm losing sales. Please help ASAP.",
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instructions": "Which team should handle this",
+      "criteria": {
+        "billing": "Payment or subscription issues",
+        "technical": "Bugs or integration problems",
+        "sales": "Pricing or account questions" }
+    },
+    "frustration": {
+      "type": "score",
+      "instructions": "How frustrated the customer appears",
+      "criteria": ["Calm, just stating facts", "Frustrated but civil", "Very angry, strong language"]
+    },
+    "is_urgent": {
+      "type": "noul",
+      "instructions": "The message conveys urgency or time-sensitivity"
+    }
+  }
+}</pre></div></div>
+      <div class="col">
+        <div class="card"><h3><span class="c-blue">state</span></h3><p>The content and facts to judge: string, object, or array.</p></div>
+        <div class="card"><h3><span class="c-blue">questions</span></h3><p>Map of <code>id → question</code>. The id is for <b>your code</b>; it is never sent to the model.</p></div>
+        <div class="card"><h3><span class="c-blue">instructions</span></h3><p>The judgment itself: a question, or a statement to judge.</p></div>
+        <div class="card"><h3><span class="c-blue">criteria</span></h3><p>The possible answers. Choice: map of options. Score: ordered levels. Noul: optional.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: /introduction/quickstart · /primitives</div>
+  <aside class="notes"><ul>
+    <li>Real request from the docs quickstart. Three question types mixed in one call.</li>
+    <li>The state contains the material; questions define the judgments. Keep them separate.</li>
+    <li>Question ids are not sent to the model, so put the complete question in <code>instructions</code> even if the id looks self-explanatory.</li>
+    <li><code>model</code>: "jev-latest" is an alias for jev-1.13.0 and is the SDK default.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 7 · RESPONSE ANATOMY -->
+<section class="slide">
+  <div class="kicker">Part 2 · Core concepts</div>
+  <h1>The response: <span class="accent">typed answers</span>, not prose</h1>
+  <div class="body">
+    <div class="row grow">
+      <div class="panel w60"><div class="ph out">Response (recorded in the docs)</div><div class="pb"><pre class="code" style="font-size:22px;line-height:1.5" data-lang="json">
+{
+  "model": "jev-1.13.0",
+  "answers": {
+    "department": {
+      "type": "choice", "choice": "technical", "confidence": 0.78,
+      "probabilities": {"technical": 0.85, "sales": 0.0, "billing": 0.15}
+    },
+    "frustration": {
+      "type": "score", "score": 1.0, "confidence": 1.0,
+      "probabilities": {"0": 0.0, "1": 1.0, "2": 0.0}
+    },
+    "is_urgent": {"type": "noul", "noul": 1.0}
+  },
+  "usage": {"input_tokens": 392, "output_tokens": 65}
+}</pre></div></div>
+      <div class="col">
+        <div class="panel"><div class="ph">What your code does with it</div><div class="pb"><pre class="code sm" data-lang="python">
+r = client.system_one(state=ticket, questions=...)
+
+r.answers["department"].choice    # "technical"
+r.answers["frustration"].score    # 1.0
+r.answers["is_urgent"].noul       # 1.0</pre></div></div>
+        <ul class="list sm">
+          <li>Every answer is constrained to the options <b>you</b> supplied.</li>
+          <li>Choice and Score add <code>probabilities</code> and <code>confidence</code>. Noul is one probability.</li>
+          <li><code>model</code> reports the exact version: log it.</li>
+          <li>Billed on input tokens; output is free.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: /introduction/quickstart · /models</div>
+  <aside class="notes"><ul>
+    <li>Same ticket as previous slide: Stripe integration failing for 3 days.</li>
+    <li>"department" is a split: technical 0.85 vs billing 0.15, so confidence 0.78. "frustration" is level 1 with all the probability, so confidence 1.0.</li>
+    <li>Score's response also has a <code>legend</code> repeating the level descriptions (omitted here for space).</li>
+    <li>Typed output guarantees the interface, not truth. Validate performance in your domain.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 8 · STATE -->
+<section class="slide">
+  <div class="kicker">Part 2 · Core concepts</div>
+  <h1><span class="accent">State</span>: what the model evaluates</h1>
+  <div class="body">
+    <div class="row">
+      <div class="card w40"><h3>String <span class="muted small" style="font-weight:400">· a message or passage</span></h3><pre class="code xs" data-lang="text">"My card was charged twice."</pre></div>
+      <div class="card"><h3>Object <span class="muted small" style="font-weight:400">· named fields</span></h3><pre class="code xs" data-lang="json">{"message": "My card was charged twice.",
+ "order_id": "A-104"}</pre></div>
+      <div class="card"><h3>Array <span class="muted small" style="font-weight:400">· a sequence</span></h3><pre class="code xs" data-lang="json">["Hi", "My customer number is TS1337.",
+ "My card was charged twice."]</pre></div>
+    </div>
+    <div class="row grow">
+      <div class="panel w50"><div class="ph in">One state: conversation + order + policy</div><div class="pb"><pre class="code xs" data-lang="json">
+{
+  "ticket": {
+    "subject": "Duplicate charge",
+    "messages": [
+      {"from": "customer", "text": "I was charged twice for order A-104.
+                                    Please refund the duplicate."},
+      {"from": "support", "text": "We are checking the charges."}
+    ]
+  },
+  "order": {
+    "id": "A-104",
+    "charges": [{"amount_usd": 49, "status": "captured"},
+                {"amount_usd": 49, "status": "captured"}]
+  },
+  "refund_policy": "Duplicate charges are eligible for a refund."
+}</pre></div></div>
+      <div class="col">
+        <div class="panel"><div class="ph in">Questions point at parts of the state</div><div class="pb"><pre class="code xs" data-lang="json">
+"refund_requested": {"type": "noul",
+  "instructions": "Does «`ticket.messages[0].text`» request a refund?"},
+"policy_supports_refund": {"type": "noul",
+  "instructions": "Does «`refund_policy`» support the refund requested in
+     «`ticket.messages[0].text`», given «`order.charges`»?"}</pre></div></div>
+        <ul class="list sm">
+          <li>Put related information <b>together</b> when the decision compares it.</li>
+          <li>Reference fields with backticked paths.</li>
+          <li>Send only the <b>relevant</b> context; supply current facts yourself.</li>
+          <li>Text only. Images, audio, video: not supported (yet).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: /concepts/state · /primitives</div>
+  <aside class="notes"><ul>
+    <li>Think of state as the material you would show a panel of experts before asking for a judgment.</li>
+    <li>Don't rely on knowledge in the model weights when current information can come from your own knowledge base (put policy text, records, etc. into the state).</li>
+    <li>Context: 64k tokens per request; 32k for state plus the longest question.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 9 · CHOICE -->
+<section class="slide">
+  <div class="kicker">Part 2 · Core concepts</div>
+  <h1><span class="tag choice">Choice</span> Pick one option from a list</h1>
+  <div class="body">
+    <div class="callout"><b>Question:</b> "Which team should handle this?" &nbsp;·&nbsp; <b>Options:</b> <code>returns</code> exchanges, wrong or damaged items · <code>shipping</code> delivery status, delays, lost packages · <code>billing</code> charges, invoices, payment problems</div>
+    <div class="row grow">
+      <div class="panel"><div class="ph in">Input · clear case</div><div class="pb">
+        <p class="quote">"My running shoes arrived in the wrong size. Can I swap them for a size 10?"</p>
+        <div class="lbl out">Output</div>
+        <div class="bars" style="--accent:var(--choice);--lw:150px;font-size:24px" data-p="returns:1.0,shipping:0.0,billing:0.0"></div>
+        <div class="conf" style="margin-top:14px"><span class="k">choice</span><span class="v c-choice">returns</span>&nbsp;&nbsp;<span class="k">confidence</span><span class="v">1.00</span></div>
+      </div></div>
+      <div class="panel"><div class="ph in">Input · ambiguous case</div><div class="pb">
+        <p class="quote">"Shoes arrived two weeks late and in the wrong size. Also I see two charges of $120 on my card. What are you going to do about this?"</p>
+        <div class="lbl out">Output</div>
+        <div class="bars" style="--accent:var(--choice);--lw:150px;font-size:24px" data-p="returns:0.61,billing:0.35,shipping:0.04"></div>
+        <div class="conf" style="margin-top:14px"><span class="k">choice</span><span class="v c-choice">returns</span>&nbsp;&nbsp;<span class="k">confidence</span><span class="v c-orange">0.42</span></div>
+      </div></div>
+    </div>
+    <ul class="list sm">
+      <li>Returns <code>choice</code> (the top option), the full <code>probabilities</code> (sum = 1) and <code>confidence</code>.</li>
+      <li>Both the option <b>names and descriptions</b> are sent to the model: write descriptions that separate the options. Add an <code>other</code> option if the list may not cover everything.</li>
+    </ul>
+  </div>
+  <div class="source">Source: /primitives/choice</div>
+  <aside class="notes"><ul>
+    <li>Both outputs are recorded in the docs for jev-1.13.0.</li>
+    <li>Second ticket involves two teams (returns and billing). The split probability and low confidence 0.42 is the model saying "this belongs to two teams". That is exactly the signal your code can route on.</li>
+    <li>Choice fits when the answer is one of a known set with no order between them: routing, document type, language, intent.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 10 · SCORE -->
+<section class="slide">
+  <div class="kicker">Part 2 · Core concepts</div>
+  <h1><span class="tag score">Score</span> Position on a scale you describe</h1>
+  <div class="body">
+    <div class="callout"><b>Question:</b> "How severe is the reported issue?" &nbsp;·&nbsp; <b>Levels:</b> <code>0</code> Cosmetic; no impact · <code>1</code> Broken or degraded, workaround exists · <code>2</code> Blocking; no workaround</div>
+    <table class="t compact">
+      <thead><tr><th>Input (bug report)</th><th>score</th><th>confidence</th><th class="nw">probabilities (0 / 1 / 2)</th></tr></thead>
+      <tbody>
+        <tr><td>The export button is misaligned by a few pixels on the settings page.</td><td class="n c-score">0.00</td><td class="n">1.00</td><td class="n">1.00 / 0.00 / 0.00</td></tr>
+        <tr><td>The PDF export button does nothing when clicked. I can still export to CSV and convert it myself, but that takes ages.</td><td class="n c-score">1.00</td><td class="n">1.00</td><td class="n">0.00 / 1.00 / 0.00</td></tr>
+        <tr><td>Export to PDF fails with a spinner that never finishes. Some of our team say CSV export still works for them, others say it fails too.</td><td class="n c-score">1.11</td><td class="n">0.84</td><td class="n">0.00 / 0.89 / 0.11</td></tr>
+        <tr><td>The export button crashes the settings page in Safari. It works in Chrome, but a few of our customers only use Safari.</td><td class="n c-score">1.43</td><td class="n c-orange">0.35</td><td class="n">0.00 / 0.57 / 0.43</td></tr>
+        <tr><td>Nobody on our team can log in since this morning. We get a 500 error on every attempt.</td><td class="n c-score">2.00</td><td class="n">1.00</td><td class="n">0.00 / 0.00 / 1.00</td></tr>
+      </tbody>
+    </table>
+    <div class="row">
+      <div class="callout w50 small"><b>score</b> = probability-weighted mean of level numbers, e.g. 0.89·1 + 0.11·2 = <b>1.11</b>. Levels are 0-based (their index in <code>criteria</code>), 2 to 10 levels.</div>
+      <div class="callout warn w50 small"><b>Describe situations, not degrees.</b> Levels <code>["0","1","2"]</code> gave score 0.55, confidence 0.33 on the misaligned-button report; descriptive levels gave 0.0 at 1.0.</div>
+    </div>
+  </div>
+  <div class="source">Source: /primitives/score</div>
+  <aside class="notes"><ul>
+    <li>All five rows are recorded jev-1.13.0 answers from the docs.</li>
+    <li>A fractional score is a position: rank by it, or round to the nearest level if you need one outcome.</li>
+    <li>Different distributions can give the same score: 1.0 could be "all on level 1" or "half on 0, half on 2". Read probabilities and confidence with it.</li>
+    <li>The model sees only the level descriptions, each judged on its own; it doesn't see level numbers or neighbours. Keep each Score to one dimension.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 11 · NOUL -->
+<section class="slide">
+  <div class="kicker">Part 2 · Core concepts</div>
+  <h1><span class="tag noul">Noul</span> Probability that a statement is true</h1>
+  <div class="body">
+    <div class="callout"><b>Question:</b> "Is the customer asking for a human agent?" &nbsp;·&nbsp; <b>Returns:</b> one number <code>noul</code> from 0 to 1 (probability of yes). No separate confidence.</div>
+    <div class="row grow">
+      <table class="t compact mid w60">
+        <thead><tr><th>Input (customer message)</th><th>noul</th></tr></thead>
+        <tbody>
+          <tr><td>Thanks, that fixed it!</td><td class="n"><span style="display:inline-block;height:14px;width:4px;background:var(--noul);border-radius:3px"></span> 0.02</td></tr>
+          <tr><td>How do I reset my password?</td><td class="n"><span style="display:inline-block;height:14px;width:11px;background:var(--noul);border-radius:3px"></span> 0.07</td></tr>
+          <tr><td>I need this sorted today, whatever it takes.</td><td class="n"><span style="display:inline-block;height:14px;width:42px;background:var(--noul);border-radius:3px"></span> 0.26</td></tr>
+          <tr><td>Are you a bot?</td><td class="n"><span style="display:inline-block;height:14px;width:64px;background:var(--noul);border-radius:3px"></span> 0.40</td></tr>
+          <tr><td>Is there any way to speak to someone about my invoice?</td><td class="n"><span style="display:inline-block;height:14px;width:134px;background:var(--noul);border-radius:3px"></span> 0.84</td></tr>
+          <tr><td>I have asked three times now. Can I please just talk to a real person?</td><td class="n"><span style="display:inline-block;height:14px;width:158px;background:var(--noul);border-radius:3px"></span> 0.99</td></tr>
+        </tbody>
+      </table>
+      <div class="col">
+        <pre class="code sm" data-lang="python">
+wants_human = response.answers[
+    "is_human_escalation"].noul &gt; 0.9
+
+if wants_human:
+    route_to_agent(ticket)
+else:
+    route_to_bot(ticket)</pre>
+        <ul class="list sm">
+          <li><b>0.5 ≠ "medium".</b> It means yes and no are equally likely.</li>
+          <li>One condition per Noul. High value must mean yes.</li>
+          <li>For a <b>degree</b>, use a Score instead.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: /primitives/noul</div>
+  <aside class="notes"><ul>
+    <li>Recorded jev-1.13.0 answers. "I need this sorted today" is urgent but never asks for a person: 0.26. "Are you a bot?" hints at wanting a human: 0.40.</li>
+    <li>Threshold by cost of being wrong: 0.5 if both sides equally easy; raise it when a false yes is expensive (refund, paging someone); lower it when missing a true yes is expensive (safety issue). Middle values can go to a person.</li>
+    <li>Docs example on "degree": "Is the candidate strong in Python?" gives 0.81 for a 2-year daily user and 0.92 for an 8-year user, while a 4-level Score gives 2.05 and 2.89: the Score is judged against levels you defined, the Noul is just a probability.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 12 · PROBABILITIES VS CONFIDENCE -->
+<section class="slide">
+  <div class="kicker">Part 2 · Core concepts</div>
+  <h1><span class="accent">Probabilities</span> vs. <span class="accent">confidence</span></h1>
+  <div class="body">
+    <div class="row grow">
+      <div class="col w55 grow">
+        <div class="row grow">
+          <div class="card grow center"><div class="bars" style="--lw:120px;font-size:21px" data-p="returns:1.0,shipping:0.0,billing:0.0"></div><div class="conf" style="margin-top:12px"><span class="k">confidence</span><span class="v">1.00</span></div></div>
+          <div class="card grow center"><div class="bars" style="--lw:120px;font-size:21px" data-p="technical:0.85,billing:0.15,sales:0.0"></div><div class="conf" style="margin-top:12px"><span class="k">confidence</span><span class="v">0.78</span></div></div>
+        </div>
+        <div class="row grow">
+          <div class="card grow center"><div class="bars" style="--lw:120px;font-size:21px" data-p="returns:0.61,billing:0.35,shipping:0.04"></div><div class="conf" style="margin-top:12px"><span class="k">confidence</span><span class="v c-orange">0.42</span></div></div>
+          <div class="card grow center"><div class="bars" style="--lw:190px;font-size:21px" data-p="refund:0.40,replacement:0.34,exchange:0.24,information:0.02"></div><div class="conf" style="margin-top:12px"><span class="k">confidence</span><span class="v c-magenta">0.20</span></div></div>
+        </div>
+        <p class="tiny dim">Four recorded Choice answers from the docs (3, 3, 3 and 4 options).</p>
+      </div>
+      <div class="col">
+        <ul class="list sm">
+          <li><b>probabilities</b>: the full distribution over your options or levels (sums to 1). The primary output.</li>
+          <li><b>confidence</b>: one number from 0 to 1 summarizing how <b>peaked</b> that distribution is. All on one option → 1.0; the flatter, the lower.</li>
+          <li>Convenience for thresholds. You can compute your own from <code>probabilities</code>.</li>
+          <li>It describes the <b>answer</b>, not correctness. Low confidence: options overlap, or the state says too little.</li>
+        </ul>
+        <div class="callout warn small"><b>Our reading (not official).</b> Consistent with every recorded example: <code>(N · p_max − 1) / (N − 1)</code>. So it depends on the number of options N, and only on the top probability.</div>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: /confidence · /primitives/choice · formula: our fit to the docs' examples</div>
+  <aside class="notes"><ul>
+    <li>Confidence is TypeSafe's own derived statistic, not a standard probability-theory term. Closest standard notion: the ML "classifier confidence" = max predicted class probability. Unrelated to statistical confidence intervals.</li>
+    <li>Docs only state the formula for the 3-option demo: (3 × p_max − 1) / 2. We generalized it and it matches all recorded examples with N = 3, 4, 5. Say "a normalized measure of how peaked the distribution is".</li>
+    <li>Consequences: with two options, p = 0.9 gives confidence 0.8; with three, 0.85. And [0.5, 0.5, 0] and [0.5, 0.25, 0.25] would get the same confidence.</li>
+    <li>"Confidence 0.8" does NOT mean "80% likely correct". Calibration is a claim about the probabilities.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 13 · CHEAT SHEET -->
+<section class="slide">
+  <div class="kicker">Part 2 · Core concepts</div>
+  <h1>Which primitive, and how to phrase it</h1>
+  <div class="body">
+    <table class="t">
+      <thead><tr><th>Need</th><th>Primitive</th><th>Returns</th><th>Your code does</th></tr></thead>
+      <tbody>
+        <tr><td>One of a defined set</td><td><span class="tag choice">Choice</span></td><td class="n small">choice · probabilities · confidence</td><td>routes to one of N code paths</td></tr>
+        <tr><td>Degree along a described dimension</td><td><span class="tag score">Score</span></td><td class="n small">score (0…N−1) · probabilities · confidence</td><td>thresholds, ranks, weighted sums</td></tr>
+        <tr><td>Does a condition hold?</td><td><span class="tag noul">Noul</span></td><td class="n small">noul (0–1)</td><td>an <code>if</code></td></tr>
+      </tbody>
+    </table>
+    <div class="row grow">
+      <div class="card tint-choice"><h3>Choice</h3><p style="font-size:30px">Ask "<b>Which</b> …?" with an options map. Include <code>other</code> when the list may not be exhaustive.</p></div>
+      <div class="card tint-score"><h3>Score</h3><p style="font-size:30px">Ask "<b>How</b> …?" with ordered levels. Describe concrete situations. One dimension per question.</p></div>
+      <div class="card tint-noul"><h3>Noul</h3><p style="font-size:30px">A yes/no question <b>or a statement</b>: both work ("The message conveys urgency"). High = yes. Add <code>criteria: {true, false}</code> if the boundary is subtle.</p></div>
+    </div>
+    <div class="callout small"><b>Question or statement?</b> The docs don't force one form. Try both phrasings on your own data and keep whichever gives better answers.</div>
+  </div>
+  <div class="source">Source: /primitives · /primitives/noul (phrasing guidance)</div>
+  <aside class="notes"><ul>
+    <li>Docs: "prefer the type whose answer your code can act on directly. A Choice maps onto three code paths, a Score onto a threshold, a Noul onto an if."</li>
+    <li>Docs on instructions: "Write it as a clear, specific question, or as a statement for the model to judge."</li>
+    <li>The Choice/Score phrasing ("Which…", "How…") is our practical suggestion following the docs' examples.</li>
+    <li>criteria for Noul is optional: try questions with and without it.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 14 · DESIGN PRINCIPLES -->
+<section class="slide">
+  <div class="kicker">Part 3 · Building with it</div>
+  <h1>AI-powered software: <span class="accent">code owns the workflow</span></h1>
+  <div class="body">
+    <div class="row">
+      <div class="card"><h3>Traditional software</h3><p>A decision tree built from reliable primitives.</p></div>
+      <div class="card tint-orange"><h3>LLM agents</h3><p>The model picks the next step. Every loop is another chance to go off the rails.</p></div>
+      <div class="card tint-blue"><h3 class="accent">AI-powered software</h3><p>Code owns control flow. The model appears only for narrow, structured judgments.</p></div>
+    </div>
+    <div class="row grow">
+      <ol class="list sm" style="list-style:none;display:flex;flex-direction:column;gap:22px;font-size:34px">
+        <li><b class="c-blue">1 · Use code when you can.</b> Deterministic rules stay in code.</li>
+        <li><b class="c-blue">2 · Send only relevant state.</b> Less distraction, less context rot.</li>
+        <li><b class="c-blue">3 · Decompose into atomic questions.</b> The docs' "most important concept".</li>
+        <li><b class="c-blue">4 · Ask many questions per request.</b> They run in parallel.</li>
+        <li><b class="c-blue">5 · Combine in code</b> (rules, weighted sums) <b>or feed probabilities to a classical ML model.</b></li>
+        <li><b class="c-blue">6 · Route on uncertainty.</b> Escalate low confidence to a person or a reasoning model.</li>
+      </ol>
+    </div>
+  </div>
+  <div class="source">Source: /concepts/how-to-build-with-system-one</div>
+  <aside class="notes"><ul>
+    <li>Example of "use code when you can": <code>if days_overdue &gt; 30: route_to_collections(invoice)</code>. No model needed.</li>
+    <li>Structured properties the docs list: Structured, Parallel, Comparable, Fast (~100 ms), Calibrated confidence, Self-consistent.</li>
+    <li>Docs' guidance: test thresholds by plotting confidence against accuracy on your data.</li>
+    <li>Step 5 second half: with labeled outcomes, Jev's probabilities can become features for a classical model (AutoResearch cookbook).</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 15 · DECOMPOSITION -->
+<section class="slide">
+  <div class="kicker">Part 3 · Building with it</div>
+  <h1>Decompose: <span class="accent">one broad question → many atomic ones</span></h1>
+  <div class="body">
+    <div class="panel"><div class="ph in">Input · one state</div><div class="pb"><p class="small"><b>From:</b> "Acme Payroll" &lt;rewards@claim-bonus.example&gt; &nbsp;·&nbsp; <b>Subject:</b> Urgent: claim your employee bonus<br><b>Body:</b> "You have been selected for a $1,000 bonus. Confirm your payroll password today to receive it." &nbsp;·&nbsp; <b>Link:</b> "Claim bonus" → http://claim-bonus.example/acme</p></div></div>
+    <div class="row grow">
+      <div class="col w40">
+        <div class="callout bad" style="font-size:32px"><b>One broad question</b> <span class="tag noul" style="font-size:16px">Noul</span><br><code>Is `message` spam?</code></div>
+        <p class="muted" style="font-size:30px">A single number hides several judgments. You can't see which one drove it, tune it, or reuse the parts.</p>
+      </div>
+      <div class="col">
+        <div class="callout good" style="font-size:32px"><b>Six atomic questions</b>, one request, all <span class="tag noul" style="font-size:16px">Noul</span></div>
+        <ul class="list sm" style="font-size:29px;gap:14px">
+          <li><code>requests_credentials</code> asks for a password or login?</li>
+          <li><code>offers_unexpected_reward</code> claims an unexpected prize or payment?</li>
+          <li><code>creates_time_pressure</code> pressures to act quickly?</li>
+          <li><code>sender_identity_mismatch</code> display name conflicts with email domain?</li>
+          <li><code>link_domain_mismatch</code> link domain conflicts with the named organization?</li>
+          <li><code>disguises_link_destination</code> link text misrepresents the URL?</li>
+        </ul>
+        <div class="callout" style="font-size:28px"><b>Then combine in code:</b> weights, thresholds, or a classical model.</div>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: /concepts/how-to-build-with-system-one</div>
+  <aside class="notes"><ul>
+    <li>Docs: "Broad questions hide several judgments behind one answer. Atomic questions expose those judgments so you can inspect, tune, and combine them in code."</li>
+    <li>When priorities shift, change a weight in code instead of rewriting a prompt.</li>
+    <li>The docs publish these questions but no recorded output for this example, so no probabilities are shown here.</li>
+    <li>The docs' second decomposition example: verifying an agent tool-call trace (right tool? right arguments? right units?).</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 16 · FAN-OUT -->
+<section class="slide">
+  <div class="kicker">Part 3 · Pattern 1 of 4</div>
+  <h1>Speculative <span class="accent">fan-out</span></h1>
+  <p class="lead" style="margin-bottom:14px">Send many questions in one call, including speculative ones. Your code decides which answers matter.</p>
+  <div class="body">
+    <div class="callout small"><b>Input:</b> "Hi, I placed an order (#98423) last Thursday and was charged twice. I also can't log in after the site update, and adding Apple Pay would be really helpful. This is getting frustrating."</div>
+    <div class="row grow">
+      <div class="diagram" style="flex:0 0 46%;min-width:0"><pre class="mermaid">
+flowchart TB
+  t["support ticket"] -- "1 request" --> req
+  subgraph req["Jev: 5 questions in parallel"]
+    direction LR
+    c["Choice<br/>category"] ~~~ b["Score<br/>bug<br/>severity"] ~~~ r["Noul<br/>repro<br/>steps?"] ~~~ f["Noul<br/>refund<br/>requested?"] ~~~ s["Score<br/>frustration"]
+  end
+  req -- "5 answers" --> route{"route in code"}
+  route -- "bug_report" --> eng["escalate<br/>or backlog"]
+  route -- "billing" --> bill["billing team"]
+  route -- "feature_request" --> feat["log it"]
+      </pre></div>
+      <pre class="code xs" data-lang="python" style="flex:1">
+if category.choice == "bug_report":
+    if bug_severity.score &gt; 1.5 and bug_repro.noul &gt; 0.6:
+        escalate_to_engineering(ticket_id, severity="high")
+    else:
+        add_to_bug_backlog(ticket_id)
+elif category.choice == "billing":
+    if refund.noul &gt; 0.7:
+        route_to_billing_with_flag(ticket_id, refund_likely=True)
+    else:
+        route_to_billing(ticket_id)
+elif category.choice == "feature_request":
+    log_feature_request(ticket_id)
+
+# useful regardless of category
+if frustration.score &gt; 1.5:
+    flag_for_priority_response(ticket_id)</pre>
+    </div>
+  </div>
+  <div class="source">Source: /patterns/fan-out</div>
+  <aside class="notes"><ul>
+    <li>Instead of asking category first and severity in a second call, ask both. If it isn't a bug, ignore the severity answer.</li>
+    <li>Extra questions usually have little effect on response time, but they do cost tokens: measure real cost and latency.</li>
+    <li>Questions can't see each other's answers. If a later question needs an earlier answer (to fetch evidence, build new state), that warrants a second request.</li>
+    <li>Thresholds (1.5, 0.6, 0.7) are the docs' example values, not universal rules.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 17 · CONFIDENCE ROUTING -->
+<section class="slide">
+  <div class="kicker">Part 3 · Pattern 2 of 4</div>
+  <h1>Confidence-gated <span class="accent">routing</span></h1>
+  <p class="lead" style="margin-bottom:14px">The answer says <i>what</i>. Confidence says <i>whether to act</i>. Thresholds scale with the risk of the action.</p>
+  <div class="body">
+    <div class="callout small"><b>Question:</b> "What action is the user requesting?" &nbsp;→ <code>check_balance</code> · <code>approve_transfer</code> · <code>other</code> (voice banking)</div>
+    <div class="row grow">
+      <div class="diagram w45"><pre class="mermaid">
+flowchart TB
+  command["voice command"] --> intent["Choice: intent"]
+  intent --> gate{"confidence<br/>high enough?"}
+  gate -- "below 0.6 or other" --> human["support agent"]
+  gate -- "check_balance, 0.6+" --> balance["show balance"]
+  gate -- "approve_transfer<br/>0.6 to 0.85" --> confirm["ask user<br/>to confirm"]
+  gate -- "approve_transfer<br/>above 0.85" --> approve["approve transfer"]
+      </pre></div>
+      <pre class="code xs" data-lang="python" style="flex:1">
+action = response.answers["intent"]
+
+# Below 0.6 confidence on any action: a human
+if action.confidence &lt; 0.6:
+    route_to_support_agent(account_id)
+elif action.choice == "check_balance":
+    # Low stakes: 0.6 is enough
+    show_balance(account_id)
+elif action.choice == "approve_transfer":
+    if action.confidence &gt; 0.85:
+        approve_transfer(account_id)
+    else:
+        ask_user_to_confirm("Just to confirm: you would like "
+                            "to approve this transfer?")
+else:
+    route_to_support_agent(account_id)</pre>
+    </div>
+    <div class="callout warn small">0.6 and 0.85 are the docs' example thresholds. Tune them on your own data: plot confidence against accuracy.</div>
+  </div>
+  <div class="source">Source: /patterns/confidence-routing · /confidence</div>
+  <aside class="notes"><ul>
+    <li>Three paths: high confidence acts automatically; medium proceeds with caution (confirm, review); low does not act (human, clarification, fallback).</li>
+    <li>Checking a balance at 0.6 is fine: worst case the user hears a wrong read-out. Approving a transfer needs much more.</li>
+    <li>"I don't know" as a first-class signal: a system that can't express honest uncertainty can't be trusted.</li>
+    <li>Confidence summarizes distribution concentration, not overall workflow correctness or permission to act. Several acceptable alternatives can also spread probability.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 18 · COMPOSITE SCORING -->
+<section class="slide">
+  <div class="kicker">Part 3 · Pattern 3 of 4</div>
+  <h1>Composite <span class="accent">scoring</span></h1>
+  <p class="lead" style="margin-bottom:14px">Break a complex judgment into atomic Scores. Combine them with weights <b>you</b> control in code.</p>
+  <div class="body">
+    <div class="callout small"><b>Input (ticket):</b> "Export to PDF fails with a spinner that never finishes. Some of our team say CSV export still works for them, others say it fails too. This is the third time I'm writing in and honestly I'm done. Steps: open any report, click Export, choose PDF. Chrome 128 on macOS."</div>
+    <table class="t compact">
+      <thead><tr><th>Score question (one request)</th><th>score</th><th>confidence</th><th>÷ top level</th><th>= normalized</th><th>weight</th></tr></thead>
+      <tbody>
+        <tr><td>How severe is the reported issue?</td><td class="n c-score">1.24</td><td class="n">0.64</td><td class="n">÷ 2</td><td class="n">0.62</td><td class="n">0.6</td></tr>
+        <tr><td>How frustrated is the customer?</td><td class="n c-score">1.28</td><td class="n">0.58</td><td class="n">÷ 2</td><td class="n">0.64</td><td class="n">0.3</td></tr>
+        <tr><td>How much does the report give an engineer to work with?</td><td class="n c-score">3.00</td><td class="n">1.00</td><td class="n">÷ 3</td><td class="n">1.00</td><td class="n">0.1</td></tr>
+      </tbody>
+    </table>
+    <div class="row grow">
+      <pre class="code" data-lang="python" style="flex:1;font-size:25px;line-height:1.5">
+def normalized(answers, qid):
+    top_level = len(QUESTIONS[qid].criteria) - 1
+    return answers[qid].score / top_level
+
+priority = (0.6 * severity
+          + 0.3 * frustration
+          + 0.1 * report_quality)
+# = 0.6 × 0.62 + 0.3 × 0.64 + 0.1 × 1.0 = «0.664»</pre>
+      <div class="col w40">
+        <ul class="list sm">
+          <li>Scales have different lengths: <b>normalize</b> to 0–1 first.</li>
+          <li>Wrong ranking? Change a weight in code and re-run. No prompt rewrite.</li>
+          <li>Raw scores stay reusable and inspectable.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: /primitives/score · /patterns/composite-scoring</div>
+  <aside class="notes"><ul>
+    <li>Recorded output from the docs. Priority ≈ 0.66.</li>
+    <li>The docs' pattern page uses resume screening with different weight sets for "Senior IC" versus "Engineering Manager": same scores, different weights.</li>
+    <li>Weighted sums suit compensating preferences. An "any serious violation" rule needs separate conditions instead.</li>
+    <li>Changing a weight does not require re-running inference if the evidence and question meanings are unchanged.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 19 · INTENT ROUTING -->
+<section class="slide">
+  <div class="kicker">Part 3 · Pattern 4 of 4</div>
+  <h1>Intent <span class="accent">routing</span></h1>
+  <p class="lead" style="margin-bottom:14px">Classify first, then route to the cheapest handler that can do the job: code, a specialist LLM, or a human.</p>
+  <div class="body">
+    <div class="row grow">
+      <div class="diagram w62"><pre class="mermaid">
+flowchart TB
+  message["customer message"] --> jev["Jev, 1 request<br/>Choice: intent + Score: complexity"]
+  jev --> gate{"intent confidence<br/>at least 0.5?"}
+  gate -- "no" --> human["human agent"]
+  gate -- "order_status" --> order["order lookup<br/>plain code"]
+  gate -- "product_question" --> product["product<br/>specialist LLM"]
+  gate -- "return_exchange" --> returns["returns<br/>specialist LLM"]
+  gate -- "complaint" --> esc{"complexity above 1<br/>or low confidence?"}
+  esc -- "yes" --> human
+  esc -- "no" --> complaint["complaint LLM"]
+      </pre></div>
+      <div class="col">
+        <div class="card"><h3>Choice: intent</h3><p class="small"><code>order_status</code> · <code>product_question</code> · <code>return_exchange</code> · <code>complaint</code></p></div>
+        <div class="card"><h3>Score: complexity</h3><p class="small">0 simple lookup or standard procedure · 1 some judgment or multi-step · 2 unusual, edge case, escalation needed</p></div>
+        <ul class="list sm">
+          <li>One intent needs <b>no LLM at all</b>.</li>
+          <li>Expensive resources run only when needed.</li>
+          <li>Low confidence on <i>either</i> answer → human.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: /patterns/intent-routing</div>
+  <aside class="notes"><ul>
+    <li>Rather than sending every message through an expensive LLM to figure out what kind of request it is, classify first with Jev and route accordingly.</li>
+    <li>Note the extra confidence check on the complexity score: what a low confidence means depends on the stakes of the decision.</li>
+    <li>Same shape works for LLM model routing: classify domain and difficulty, escalate hard requests to a costlier model.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 20 · USE CASES -->
+<section class="slide">
+  <div class="kicker">Part 4 · Reality check</div>
+  <h1>Where could it fit? <span class="dim" style="font-size:.5em;font-weight:500">(TypeSafe's use-case map)</span></h1>
+  <div class="body">
+    <div class="row">
+      <div class="card tint-blue"><h3>AI automation software</h3><p style="font-size:26px">Code owns control flow; Jev handles semantic decisions, run a million times without a human co-pilot.</p></div>
+      <div class="card tint-blue"><h3>Universal verification</h3><p style="font-size:26px">Check prompts, extractions, reasoning traces, tool calls: jailbreaks, citation errors, hallucinations.</p></div>
+      <div class="card tint-blue"><h3>Harness engineering</h3><p style="font-size:26px">Model routing, context retrieval, guardrails, trace classification for LLM systems.</p></div>
+    </div>
+    <div class="row">
+      <div class="card tint-blue"><h3>Map-reduce over big data</h3><p style="font-size:26px">Classify huge corpora or agent traces; extract probabilistic features for predictive models.</p></div>
+      <div class="card tint-blue"><h3>Real-time applications</h3><p style="font-size:26px">Decisions inside a UI or game loop at ~150 ms.</p></div>
+      <div class="card tint-orange"><h3>Insurance claims (docs' own example)</h3><ul class="list sm" style="font-size:24px;gap:8px"><li>Classify first-notice-of-loss reports, adjuster notes, documents</li><li>Detect complexity, missing info, fraud indicators</li><li>Straight-through vs specialist review</li><li>Escalate uncertain or high-risk cases to an adjuster</li></ul></div>
+    </div>
+    <div class="callout warn small">These are TypeSafe's suggestions, not validated by us. Also listed: search &amp; reranking, LLM guardrails, semantic code linting, customer support, financial crime, legal &amp; compliance.</div>
+  </div>
+  <div class="source">Source: /concepts/use-case-map</div>
+  <aside class="notes"><ul>
+    <li>Insurance claims is listed explicitly in the use-case map. This is the bridge to our own workflows.</li>
+    <li>Human-in-the-loop is built in: confidence gating decides which cases go straight through and which go to a person.</li>
+    <li>Pattern to keep in mind: known rules, calculations, exact lookups stay in code; use Jev where ordinary code needs semantic understanding.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 21 · FACTS & LIMITS -->
+<section class="slide">
+  <div class="kicker">Part 4 · Reality check</div>
+  <h1>Facts and limits</h1>
+  <div class="body">
+    <div class="row grow">
+      <table class="t compact mid w60" style="font-size:27px">
+        <tbody>
+          <tr><td><b>Current model</b></td><td><code>jev-1.13.0</code> (alias <code>jev-latest</code>)</td></tr>
+          <tr><td><b>Price</b></td><td>$0.042 / M input tokens ($42 / B). Output free.</td></tr>
+          <tr><td><b>Speed</b></td><td>~100 ms (how-to guide) · 150 ms (use-case map)</td></tr>
+          <tr><td><b>Context</b></td><td>64k tokens per request; 32k for state + longest question</td></tr>
+          <tr><td><b>Rate limits</b></td><td>250k tokens/s · 1,200 req/min. <span class="c-orange">Adjusting dynamically.</span></td></tr>
+          <tr><td><b>Input</b></td><td>Text only: string, JSON object, array of text</td></tr>
+          <tr><td><b>Language</b></td><td>English best. Others (incl. CJK) accepted, lower accuracy</td></tr>
+          <tr><td><b>Customizing</b></td><td>No fine-tuning; same weights for all. Steer via state, instructions, criteria</td></tr>
+          <tr><td><b>Data</b></td><td>Not trained on customer data. DPA; zero data retention for enterprise</td></tr>
+        </tbody>
+      </table>
+      <div class="col">
+        <div class="callout warn"><b>To verify before relying on it</b>
+          <ul class="list sm" style="margin-top:10px;font-size:24px;gap:6px">
+            <li>Calibration on <b>our</b> data: reliability check</li>
+            <li>German, French, Italian accuracy</li>
+            <li>Real latency and cost at our volumes</li>
+            <li>Hosting and data-handling terms vs. our compliance needs</li>
+          </ul>
+        </div>
+        <div class="callout small">Typed output guarantees the <b>interface</b>, not the truth. Calibration holds across groups of predictions, not for one answer.</div>
+      </div>
+    </div>
+  </div>
+  <div class="source">Source: /models · /concepts/system-one · /concepts/how-to-build-with-system-one</div>
+  <aside class="notes"><ul>
+    <li>Rate-limit warning from the docs: limits can change without notice while they scale GPU capacity; higher limits on custom and enterprise plans (sales@typesafe.ai).</li>
+    <li>Aliases move when a new release ships. Log the versioned <code>model</code> from the response; pin the ID if thresholds were tuned to one version.</li>
+    <li>Legal page covers the DPA, Privacy Policy and zero data retention. We have not read it in detail.</li>
+    <li>Everything in the "to verify" box is our suggestion, not from the docs.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+<!-- 22 · TAKEAWAYS -->
+<section class="slide">
+  <div class="kicker">Wrap-up</div>
+  <h1>Takeaways and <span class="accent">discussion</span></h1>
+  <div class="body">
+    <div class="row">
+      <div class="card tint-blue"><h3>1 · A new contract</h3><p style="font-size:28px">State + typed questions in. Typed answers + calibrated probabilities out. No generation, no parsing.</p></div>
+      <div class="card tint-blue"><h3>2 · Atomic and composable</h3><p style="font-size:28px">Choice, Score, Noul. Many narrow questions per request; <b>code</b> combines them.</p></div>
+      <div class="card tint-blue"><h3>3 · Uncertainty is an input</h3><p style="font-size:28px">Gate actions by risk with probabilities and confidence: act, confirm, or escalate.</p></div>
+    </div>
+    <h2 style="margin-top:20px;font-size:40px">For the discussion</h2>
+    <ul class="list" style="font-size:36px;gap:22px">
+      <li>Where do we have an LLM "prompt-and-parse" step that is really a typed judgment?</li>
+      <li>Which of our decisions need confidence gating, and what would the thresholds cost us if wrong?</li>
+      <li>How would we validate calibration on our own labeled data before trusting it?</li>
+      <li>Is text-only, English-first good enough for our languages and documents?</li>
+    </ul>
+  </div>
+  <div class="source">docs.typesafe.ai · github.com/typesafe-ai</div>
+  <aside class="notes"><ul>
+    <li>Close by restating: it's a new interface contract more than a new capability.</li>
+    <li>Possible next step: a small pilot with pre-recorded real API responses on our own examples, plus a reliability (calibration) check.</li>
+  </ul></aside>
+  <div class="counter"></div>
+</section>
+
+</div><!-- /stage -->
+<div id="notes"></div>
+<script src="vendor/mermaid.min.js"></script>
+<script src="deck.js"></script>
+</body>
+</html>
