@@ -16,7 +16,7 @@
   <div class="kicker">TypeSafe AI · System One models</div>
   <h1>Jev: <span class="accent">decision models</span><br>for software</h1>
   <p class="sub">A model that returns typed judgments and calibrated probabilities instead of generated text.</p>
-  <div class="meta">Samuel Pullely · Innovation team · AI engineering<br>Based on the official TypeSafe docs (docs.typesafe.ai) · model <span class="c-blue">jev-1.13.0</span></div>
+  <div class="meta">Based on the official TypeSafe docs (docs.typesafe.ai) · model <span class="c-blue">jev-1.13.0</span></div>
   <aside class="notes"><ul>
     <li>Goal for the next 30 min: everyone leaves knowing what Jev is, what a System One model is, and how you build with it.</li>
     <li>Note the name: it is "Jev", from TypeSafe AI. It is the first System One model.</li>
@@ -104,7 +104,7 @@ flowchart LR
         <tr><td><b>Adapting it</b></td><td>Retrain</td><td>Prompt or fine-tune</td><td class="hl">State + instructions + criteria. Same weights for everyone</td></tr>
       </tbody>
     </table>
-    <div class="callout warn">Jev column: from TypeSafe's docs, including their speed and cost figures (not independently verified). The other two columns are general background, not from the docs. The novelty is the <b>combination</b>, not any single ingredient.</div>
+    <div class="callout warn">Jev column: from TypeSafe's docs, including their speed and cost figures (not independently verified). The novelty is the <b>combination</b>, not any single ingredient.</div>
   </div>
   <div class="source">Source: /models · /concepts/how-to-build-with-system-one · /introduction/machine-learning-primer</div>
   <aside class="notes"><ul>
@@ -131,7 +131,7 @@ flowchart LR
         <ul class="list sm">
           <li><b>Example:</b> 1,000 tickets where <code>probabilities["technical"]</code> = 0.80 → about 800 are really technical.</li>
           <li><b>Overconfident model:</b> says 0.99 but is right 70% of the time. Its probabilities cannot be used as thresholds.</li>
-          <li>About the <b>probabilities</b> (not <code>confidence</code>), and about <b>groups</b> of predictions, not one answer. Validate on your own data.</li>
+          <li>About the <b>probabilities</b> (not <code>confidence</code>), across <b>many different inputs</b> asked the same question, not one answer. Validate on your own data.</li>
         </ul>
       </div>
       <div class="diagram">
